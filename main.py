@@ -29,27 +29,19 @@ import io
 import re
 from mistralai import Mistral
 
-# ---------------------------------------------
-# Logging config
-# ---------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("MedicalAssistant")
 
-# ---------------------------------------------
-# Load environment
-# ---------------------------------------------
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
     raise RuntimeError("❌ GOOGLE_API_KEY environment variable missing.")
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 mistral_client = Mistral(api_key=MISTRAL_API_KEY)
-# ---------------------------------------------
-# Configuration
-# ---------------------------------------------
+
 class Config:
     CACHE_MAX_SIZE = 200
     MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -61,9 +53,6 @@ class Config:
 
 config = Config()
 
-# ---------------------------------------------
-# App state
-# ---------------------------------------------
 class AppState:
     def __init__(self):
         self.vectorstore: Optional[FAISS] = None
@@ -85,9 +74,6 @@ class AppState:
 
 app_state = AppState()
 
-# ---------------------------------------------
-# Pydantic Models
-# ---------------------------------------------
 class AskRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=1000)
 
@@ -109,9 +95,6 @@ class HealthResponse(BaseModel):
     vectorstore_loaded: bool
     cached_files: int
 
-# ---------------------------------------------
-# Helpers
-# ---------------------------------------------
 def hash_content(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
@@ -130,9 +113,6 @@ def clean_markdown(text: str) -> str:
 async def call_llm_safe(llm, msgs):
     return await llm.ainvoke(msgs)
 
-# ---------------------------------------------
-# Initialize models
-# ---------------------------------------------
 def init_models():
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
@@ -154,10 +134,7 @@ async def lifespan(app: FastAPI):
     await llm.ainvoke("System check")
     yield
     logger.info("🛑 Shutting down...")
-
-# ---------------------------------------------
-# FastAPI App
-# ---------------------------------------------
+    
 app = FastAPI(title="Medical Assistant", version="1.0", lifespan=lifespan)
 
 app.add_middleware(
